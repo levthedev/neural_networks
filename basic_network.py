@@ -59,7 +59,7 @@ class Network(object):
             activation = sigmoid(z)
             activations.append(activation)
 
-        # error in last layer - equation BP1
+        # error in last layer - equation BP1 - δL=(aL−y) ⊙ σ′(zL)
         delta = self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
         nabla_b[-1] = delta
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
@@ -67,13 +67,12 @@ class Network(object):
         # error in the nth layer - equation BP2
         for l in range(2, self.num_layers):
             z = zs[-l]
-            sp = sigmoid_prime(z)
-            delta = np.dot(self.weights[-l + 1].transpose(), delta) * sp
-            nabla_b[-l] = delta # equation BP3
-            nabla_w[-l] = np.dot(delta, activations[-l - 1].transpose()) # equation BP4
+            delta = np.dot(self.weights[-l + 1].transpose(), delta) * sigmoid_prime(z) # BP2 - δl=((wl+1)Tδl+1)⊙σ′(zl)
+            nabla_b[-l] = delta # equation BP3 - ∂C/∂blj=δlj.
+            nabla_w[-l] = np.dot(delta, activations[-l - 1].transpose()) # BP4 - ∂C/∂wljk=a(l−1)k * δlj
         return (nabla_b, nabla_w)
 
-    def cost_derivative(self, output_activations, y):
+    def cost_derivative(self, output_activations, y): # ∂C/∂aLj=(aLj−yj)
         return (output_activations - y)
 
 
