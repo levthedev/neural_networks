@@ -59,7 +59,7 @@ class Network(object):
             activation = sigmoid(z)
             activations.append(activation)
 
-        # error in last layer - equation BP1 - δL=(aL−y) ⊙ σ′(zL)
+        # error in last layer - equation BP1 - pd_L=(aL-y) hadamard sigmaPrime(zL)
         delta = self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
         nabla_b[-1] = delta
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
@@ -67,12 +67,12 @@ class Network(object):
         # error in the nth layer - equation BP2
         for l in range(2, self.num_layers):
             z = zs[-l]
-            delta = np.dot(self.weights[-l + 1].transpose(), delta) * sigmoid_prime(z) # BP2 - δl=((wl+1)Tδl+1)⊙σ′(zl)
-            nabla_b[-l] = delta # equation BP3 - ∂C/∂blj=δlj.
-            nabla_w[-l] = np.dot(delta, activations[-l - 1].transpose()) # BP4 - ∂C/∂wljk=a(l−1)k * δlj
+            delta = np.dot(self.weights[-l + 1].transpose(), delta) * sigmoid_prime(z) # BP2 - error_l=((wl+1)Terror_l+1) hadamard sigmaPrime(zl)
+            nabla_b[-l] = delta # equation BP3 - pd_C/pd_blj=error_lj.
+            nabla_w[-l] = np.dot(delta, activations[-l - 1].transpose()) # BP4 - pd_C/pd_wljk=a(l-1)k * error_lj
         return (nabla_b, nabla_w)
 
-    def cost_derivative(self, output_activations, y): # ∂C/∂aLj=(aLj−yj)
+    def cost_derivative(self, output_activations, y): # pd_C/pd_aLj=(aLj-yj)
         return (output_activations - y)
 
 

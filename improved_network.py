@@ -258,4 +258,5 @@ if __name__ == "__main__":
 
     training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
     net = Network([784, 100, 10])
-    net.SGD(training_data, 30, 100, 0.5, evaluation_data=test_data, monitor_evaluation_cost=True, monitor_evaluation_accuracy=True)
+    net.SGD(training_data, 10, 100, 0.5)
+    net.save('./saved')

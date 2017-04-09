@@ -1,0 +1,109 @@
+<canvas id="canvas" width="270" height="270"></canvas>
+<canvas id="canvas2" width="27" height="27"></canvas>
+<br><br>
+<span id="clear">Clear</span><span id="submit">Submit</span>
+<br><br>
+<div id="guess"></div>
+
+<script>
+  var clear = document.getElementById('clear')
+  var submit = document.getElementById('submit')
+  var canvas = document.getElementById('canvas')
+  var context = canvas.getContext("2d")
+  var canvas2 = document.getElementById('canvas2')
+  var context2 = canvas2.getContext("2d")
+  context2.fillStyle = 'mediumpurple';
+  var mouseDown = false
+  pixelMatrix = Array(28).fill().map(() => Array(28).fill(0))
+
+  submit.addEventListener('click', e => {
+    httpPostAsync('/process', displayResult)
+  })
+
+  function displayResult(responseText) {
+    document.getElementById('guess').innerHTML = responseText
+  }
+
+  clear.addEventListener('click', e => {
+    context.clearRect(0, 0, 270, 270)
+    context2.clearRect(0, 0, 27, 27)
+    pixelMatrix = Array(28).fill().map(() => Array(28).fill(0))
+  })
+
+  canvas.addEventListener('mousedown', e => {
+    mouseDown = true
+    drawPixel(e)
+  })
+
+  canvas.addEventListener('mousemove', e => {
+    if (mouseDown) { drawPixel(e) }
+  })
+
+  canvas.addEventListener('mouseup', e => mouseDown = false)
+  canvas.addEventListener('blur', e => mouseDown = false)
+
+  function drawPixel(e) {
+    var sanitizedX = Math.round(e.offsetX / 10)
+    var sanitizedY = Math.round(e.offsetY / 10)
+    pixelMatrix[sanitizedY][sanitizedX] = 1
+    pixelMatrix[sanitizedY + 1][sanitizedX + 1] = 0.5
+    pixelMatrix[sanitizedY + 1][sanitizedX - 1] = 0.5
+    pixelMatrix[sanitizedY - 1][sanitizedX + 1] = 0.5
+    pixelMatrix[sanitizedY - 1][sanitizedX - 1] = 0.5
+    pixelMatrix[sanitizedY][sanitizedX + 1] = 0.5
+    pixelMatrix[sanitizedY][sanitizedX - 1] = 0.5
+    pixelMatrix[sanitizedY - 1][sanitizedX] = 0.5
+    pixelMatrix[sanitizedY - 1][sanitizedX] = 0.5
+    context.fillRect(e.offsetX, e.offsetY, 10, 10)
+    context.fillRect(e.offsetX + 5, e.offsetY + 5, 5, 5)
+    context.fillRect(e.offsetX + 5, e.offsetY - 5, 5, 5)
+    context.fillRect(e.offsetX - 5, e.offsetY + 5, 5, 5)
+    context.fillRect(e.offsetX - 5, e.offsetY - 5, 5, 5)
+    context.fillRect(e.offsetX + 5, e.offsetY, 5, 5)
+    context.fillRect(e.offsetX - 5, e.offsetY, 5, 5)
+    context.fillRect(e.offsetX, e.offsetY + 5, 5, 5)
+    context.fillRect(e.offsetX, e.offsetY - 5, 5, 5)
+
+    context2.fillRect(sanitizedX, sanitizedY, 1, 1)
+    context2.fillRect(sanitizedX + 1, sanitizedY + 1, 1, 1)
+    context2.fillRect(sanitizedX + 1, sanitizedY - 1, 1, 1)
+    context2.fillRect(sanitizedX - 1, sanitizedY + 1, 1, 1)
+    context2.fillRect(sanitizedX - 1, sanitizedY - 1, 1, 1)
+  }
+
+  function httpPostAsync(url, callback) {
+    var http = new XMLHttpRequest()
+    http.onreadystatechange = () => {
+      http.readyState == 4 && http.status == 200 && callback(http.responseText)
+    }
+    http.open("GET", `${url}?vector=${[].concat(...pixelMatrix)}`, true)
+    http.send(null)
+  }
+
+  context.fillStyle = 'mediumpurple';
+</script>
+
+<style>
+  body {
+    margin: 50;
+    font-family: Helvetica, Arial, sans-serif;
+  }
+
+  canvas {
+    border: 1px solid grey;
+  }
+
+  span#clear, span#submit {
+    border: 1px solid mediumpurple;
+    border-radius: 3px;
+    padding: 5px;
+    margin-right: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+  }
+
+  span#clear:hover, span#submit:hover {
+    background-color: mediumpurple;
+    color: white;
+  }
+</style>
