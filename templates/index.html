@@ -45,15 +45,15 @@
   function drawPixel(e) {
     var sanitizedX = Math.round(e.offsetX / 10)
     var sanitizedY = Math.round(e.offsetY / 10)
-    pixelMatrix[sanitizedY][sanitizedX] = 1
-    pixelMatrix[sanitizedY + 1][sanitizedX + 1] = 0.5
-    pixelMatrix[sanitizedY + 1][sanitizedX - 1] = 0.5
-    pixelMatrix[sanitizedY - 1][sanitizedX + 1] = 0.5
-    pixelMatrix[sanitizedY - 1][sanitizedX - 1] = 0.5
-    pixelMatrix[sanitizedY][sanitizedX + 1] = 0.5
-    pixelMatrix[sanitizedY][sanitizedX - 1] = 0.5
-    pixelMatrix[sanitizedY - 1][sanitizedX] = 0.5
-    pixelMatrix[sanitizedY - 1][sanitizedX] = 0.5
+    pixelMatrix[sanitizedY][sanitizedX] += 1
+    pixelMatrix[sanitizedY + 1][sanitizedX + 1] += 0.5
+    pixelMatrix[sanitizedY + 1][sanitizedX - 1] += 0.5
+    pixelMatrix[sanitizedY - 1][sanitizedX + 1] += 0.5
+    pixelMatrix[sanitizedY - 1][sanitizedX - 1] += 0.5
+    pixelMatrix[sanitizedY][sanitizedX + 1] += 0.5
+    pixelMatrix[sanitizedY][sanitizedX - 1] += 0.5
+    pixelMatrix[sanitizedY - 1][sanitizedX] += 0.5
+    pixelMatrix[sanitizedY - 1][sanitizedX] += 0.5
     context.fillRect(e.offsetX, e.offsetY, 10, 10)
     context.fillRect(e.offsetX + 5, e.offsetY + 5, 5, 5)
     context.fillRect(e.offsetX + 5, e.offsetY - 5, 5, 5)
@@ -76,7 +76,12 @@
     http.onreadystatechange = () => {
       http.readyState == 4 && http.status == 200 && callback(http.responseText)
     }
-    http.open("GET", `${url}?vector=${[].concat(...pixelMatrix)}`, true)
+    vector = [].concat(...pixelMatrix)
+    vector = vector.map(x => {
+      if (x > 1) { x = 1 }
+      return x
+    })
+    http.open("GET", `${url}?vector=${vector}`, true)
     http.send(null)
   }
 
