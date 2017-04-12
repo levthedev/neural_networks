@@ -38,27 +38,18 @@ class Network(object):
             monitor_evaluation_cost=False,
             monitor_evaluation_accuracy=False,
             monitor_training_cost=False,
-            monitor_training_accuracy=False,
-            early_stop=5):
-        """The method returns a tuple containing four lists: the (per-epoch)
-        costs on the evaluation data, the accuracies on the evaluation data,
-        the costs on the training data, and the accuracies on the training data.
-        All values are evaluated at the end of each training epoch. So, for
-        example, if we train for 30 epochs, then the first element of the tuple
-        will be a 30-element list containing the cost on the evaluation data at
-        the end of each epoch."""
+            monitor_training_accuracy=False):
         if evaluation_data: n_data = len(evaluation_data)
         n = len(training_data)
         evaluation_cost, evaluation_accuracy = [], []
         training_cost, training_accuracy = [], []
         for j in xrange(epochs):
-            if (not monitor_training_cost) or monitor_training_cost and training_cost[-1:] < min(training_cost[-11:-1]):
-                random.shuffle(training_data)
-                mini_batches = [
-                    training_data[k:k + mini_batch_size]
-                    for k in xrange(0, n, mini_batch_size)]
-                for mini_batch in mini_batches:
-                    self.update_mini_batch(mini_batch, learning_rate, lmbda, len(training_data))
+            random.shuffle(training_data)
+            mini_batches = [
+                training_data[k:k + mini_batch_size]
+                for k in xrange(0, n, mini_batch_size)]
+            for mini_batch in mini_batches:
+                self.update_mini_batch(mini_batch, learning_rate, lmbda, len(training_data))
 
             print "Epoch %s training complete" % j
             if monitor_training_cost:
@@ -93,7 +84,6 @@ class Network(object):
     def backprop(self, x, y):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
-        # feedforward
         activation = x
         activations = [x] # list to store all the activations, layer by layer
         zs = [] # list to store all the z vectors, layer by layer
@@ -102,7 +92,6 @@ class Network(object):
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
-        # backward pass
         error = self.cost.output_error(activations[-1], y) # output layer error
         nabla_b[-1] = error
         nabla_w[-1] = np.dot(error, activations[-2].transpose())
@@ -167,18 +156,20 @@ def sigmoid(z):
 def sigmoid_prime(z):
     return sigmoid(z) * (1 - sigmoid(z))
 
+
 if __name__ == "__main__":
     import mnist_loader
 
     training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-    net = Network([784, 100, 10])
-    net.SGD(training_data, 50, 100, 0.5,
+    net = Network([784, 100, 30, 10])
+    net.SGD(training_data, 25, 100, 0.5,
             evaluation_data=validation_data,
             monitor_evaluation_cost=True,
             monitor_evaluation_accuracy=True,
             monitor_training_cost=True,
-            monitor_training_accuracy=True)
-    # net.save('./saved2')
+            monitor_training_accuracy=True,
+            lmbda=5.0)
+    net.save('./saved3')
 
 # implement a learning schedule that: halves the learning rate each time the validation accuracy satisfies the no-improvement-in-10 rule; and terminates when the learning rate has dropped to 1/128th of its original value.
 # Add momentum-based stochastic gradient descent to

@@ -1,114 +1,157 @@
-<canvas id="canvas" width="270" height="270"></canvas>
-<canvas id="canvas2" width="27" height="27"></canvas>
-<br><br>
-<span id="clear">Clear</span><span id="submit">Submit</span>
-<br><br>
-<div id="guess"></div>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+    <canvas id="canvas" width="270" height="270"></canvas>
+    <canvas id="canvas2" width="27" height="27"></canvas>
+    <br><br>
+    <span id="clear">Clear</span><span id="submit">Submit</span>
+    <br><br>
+    <div id="guess"></div>
 
-<script>
-  var clear = document.getElementById('clear')
-  var submit = document.getElementById('submit')
-  var canvas = document.getElementById('canvas')
-  var context = canvas.getContext("2d")
-  var canvas2 = document.getElementById('canvas2')
-  var context2 = canvas2.getContext("2d")
-  context2.fillStyle = 'mediumpurple';
-  var mouseDown = false
-  pixelMatrix = Array(28).fill().map(() => Array(28).fill(0))
+    <script>
+      var clear = document.getElementById('clear')
+      var submit = document.getElementById('submit')
+      var canvas = document.getElementById('canvas')
+      var context = canvas.getContext("2d")
+      var canvas2 = document.getElementById('canvas2')
+      var context2 = canvas2.getContext("2d")
+      var mouseDown = false
+      var p;
+      pixelMatrix = Array(28).fill().map(() => Array(28).fill(0))
 
-  submit.addEventListener('click', e => {
-    httpPostAsync('/process', displayResult)
-  })
+      submit.addEventListener('click', e => httpPostAsync('/process', displayResult))
 
-  function displayResult(responseText) {
-    document.getElementById('guess').innerHTML = responseText
-  }
+      function displayResult(responseText) {
+        var probabilities = JSON.parse(responseText).result
+        p = probabilities
+        var sorted = probabilities.sort((a, b) => parseFloat(a[1]) < parseFloat(b[1]) ? 1 : -1)
+        var guess = document.getElementById('guess')
+        var oldResults = document.getElementById('results')
+        var newResults = document.createElement('div')
+        newResults.id = 'results'
+        if (oldResults) guess.removeChild(oldResults)
+        guess.appendChild(newResults)
+        sorted.map(arr => {
+          newResults.innerHTML += `<div>${arr[0]}: ${arr[1]}%</div>`
+        })
+      }
 
-  clear.addEventListener('click', e => {
-    context.clearRect(0, 0, 270, 270)
-    context2.clearRect(0, 0, 27, 27)
-    pixelMatrix = Array(28).fill().map(() => Array(28).fill(0))
-  })
+      clear.addEventListener('click', e => {
+        var oldResults = document.getElementById('results')
+        oldResults.parentElement.removeChild(oldResults)
+        context.clearRect(0, 0, 270, 270)
+        context2.clearRect(0, 0, 27, 27)
+        pixelMatrix = Array(28).fill().map(() => Array(28).fill(0))
+      })
 
-  canvas.addEventListener('mousedown', e => {
-    mouseDown = true
-    drawPixel(e)
-  })
+      canvas.addEventListener('mousedown', e => {
+        mouseDown = true
+        drawPixel(e)
+      })
 
-  canvas.addEventListener('mousemove', e => {
-    if (mouseDown) { drawPixel(e) }
-  })
+      canvas.addEventListener('mousemove', e => {
+        if (mouseDown) { drawPixel(e) }
+      })
 
-  canvas.addEventListener('mouseup', e => mouseDown = false)
-  canvas.addEventListener('blur', e => mouseDown = false)
+      canvas.addEventListener('mouseup', e => mouseDown = false)
+      canvas.addEventListener('blur', e => mouseDown = false)
 
-  function drawPixel(e) {
-    var sanitizedX = Math.round(e.offsetX / 10)
-    var sanitizedY = Math.round(e.offsetY / 10)
-    pixelMatrix[sanitizedY][sanitizedX] += 1
-    pixelMatrix[sanitizedY + 1][sanitizedX + 1] += 0.5
-    pixelMatrix[sanitizedY + 1][sanitizedX - 1] += 0.5
-    pixelMatrix[sanitizedY - 1][sanitizedX + 1] += 0.5
-    pixelMatrix[sanitizedY - 1][sanitizedX - 1] += 0.5
-    pixelMatrix[sanitizedY][sanitizedX + 1] += 0.5
-    pixelMatrix[sanitizedY][sanitizedX - 1] += 0.5
-    pixelMatrix[sanitizedY - 1][sanitizedX] += 0.5
-    pixelMatrix[sanitizedY - 1][sanitizedX] += 0.5
-    context.fillRect(e.offsetX, e.offsetY, 10, 10)
-    context.fillRect(e.offsetX + 5, e.offsetY + 5, 5, 5)
-    context.fillRect(e.offsetX + 5, e.offsetY - 5, 5, 5)
-    context.fillRect(e.offsetX - 5, e.offsetY + 5, 5, 5)
-    context.fillRect(e.offsetX - 5, e.offsetY - 5, 5, 5)
-    context.fillRect(e.offsetX + 5, e.offsetY, 5, 5)
-    context.fillRect(e.offsetX - 5, e.offsetY, 5, 5)
-    context.fillRect(e.offsetX, e.offsetY + 5, 5, 5)
-    context.fillRect(e.offsetX, e.offsetY - 5, 5, 5)
+      canvas.addEventListener('touchstart', touchHandler, true)
+      canvas.addEventListener('touchmove', touchHandler, true)
+      canvas.addEventListener('touchend', touchHandler, true)
+      canvas.addEventListener('touchcancel', touchHandler, true)
 
-    context2.fillRect(sanitizedX, sanitizedY, 1, 1)
-    context2.fillRect(sanitizedX + 1, sanitizedY + 1, 1, 1)
-    context2.fillRect(sanitizedX + 1, sanitizedY - 1, 1, 1)
-    context2.fillRect(sanitizedX - 1, sanitizedY + 1, 1, 1)
-    context2.fillRect(sanitizedX - 1, sanitizedY - 1, 1, 1)
-  }
+      function drawPixel(e) {
+        if (e.type.includes('touch')) {
+          var x = e.touches[0].pageX
+          var y = e.touches[0].pageY
+        } else {
+          var x = e.offsetX
+          var y = e.offsetY
+        }
+        var sanitizedX = Math.round(x / 10)
+        var sanitizedY = Math.round(y / 10)
+        pixelMatrix[sanitizedY][sanitizedX] += 1
+        pixelMatrix[sanitizedY + 1][sanitizedX + 1] += 0.5
+        pixelMatrix[sanitizedY + 1][sanitizedX - 1] += 0.5
+        pixelMatrix[sanitizedY - 1][sanitizedX + 1] += 0.5
+        pixelMatrix[sanitizedY - 1][sanitizedX - 1] += 0.5
+        pixelMatrix[sanitizedY][sanitizedX + 1] += 0.5
+        pixelMatrix[sanitizedY][sanitizedX - 1] += 0.5
+        pixelMatrix[sanitizedY - 1][sanitizedX] += 0.5
+        pixelMatrix[sanitizedY - 1][sanitizedX] += 0.5
+        context.fillRect(x, y, 10, 10)
+        context.fillRect(x + 5, y + 5, 5, 5)
+        context.fillRect(x + 5, y - 5, 5, 5)
+        context.fillRect(x - 5, y + 5, 5, 5)
+        context.fillRect(x - 5, y - 5, 5, 5)
+        context.fillRect(x + 5, y, 5, 5)
+        context.fillRect(x - 5, y, 5, 5)
+        context.fillRect(x, y + 5, 5, 5)
+        context.fillRect(x, y - 5, 5, 5)
 
-  function httpPostAsync(url, callback) {
-    var http = new XMLHttpRequest()
-    http.onreadystatechange = () => {
-      http.readyState == 4 && http.status == 200 && callback(http.responseText)
-    }
-    vector = [].concat(...pixelMatrix)
-    vector = vector.map(x => {
-      if (x > 1) { x = 1 }
-      return x
-    })
-    http.open("GET", `${url}?vector=${vector}`, true)
-    http.send(null)
-  }
+        context2.fillRect(sanitizedX, sanitizedY, 1, 1)
+        context2.fillRect(sanitizedX + 1, sanitizedY + 1, 1, 1)
+        context2.fillRect(sanitizedX + 1, sanitizedY - 1, 1, 1)
+        context2.fillRect(sanitizedX - 1, sanitizedY + 1, 1, 1)
+        context2.fillRect(sanitizedX - 1, sanitizedY - 1, 1, 1)
+      }
 
-  context.fillStyle = 'mediumpurple';
-</script>
+      function httpPostAsync(url, callback) {
+        var http = new XMLHttpRequest()
+        http.onreadystatechange = () => {
+          http.readyState == 4 && http.status == 200 && callback(http.responseText)
+        }
+        vector = [].concat(...pixelMatrix)
+        vector = vector.map(x => {
+          if (x > 1) { x = 1 }
+          return x
+        })
+        http.open("GET", `${url}?vector=${vector}`, true)
+        http.send(null)
+      }
 
-<style>
-  body {
-    margin: 50;
-    font-family: Helvetica, Arial, sans-serif;
-  }
+      function touchHandler(event) {
+        var first = event.changedTouches[0]
+        var convert = { "touchstart": "mousedown", "touchmove": "mousemove", "touchend": "mouseup" }
+        var type = convert[event.type]
+        var simulatedEvent = document.createEvent("MouseEvent")
+        simulatedEvent.initMouseEvent(type, true, true, window, 1,
+                                      first.screenX, first.screenY,
+                                      first.clientX, first.clientY, false,
+                                      false, false, false, 0, null)
+        first.target.dispatchEvent(simulatedEvent)
+        event.preventDefault()
+      }
 
-  canvas {
-    border: 1px solid grey;
-  }
+      context.fillStyle = 'mediumpurple';
+      context2.fillStyle = 'black';
+    </script>
 
-  span#clear, span#submit {
-    border: 1px solid mediumpurple;
-    border-radius: 3px;
-    padding: 5px;
-    margin-right: 5px;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-  }
+    <style>
+      body {
+        margin: 50;
+        font-family: Helvetica, Arial, sans-serif;
+      }
 
-  span#clear:hover, span#submit:hover {
-    background-color: mediumpurple;
-    color: white;
-  }
-</style>
+      canvas { border: 1px solid grey; }
+
+      span#clear, span#submit {
+        border: 1px solid mediumpurple;
+        border-radius: 3px;
+        padding: 5px;
+        margin-right: 5px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        user-select: none;
+      }
+
+      span#clear:hover, span#submit:hover {
+        background-color: mediumpurple;
+        color: white;
+      }
+    </style>
+  </body>
+</html>
