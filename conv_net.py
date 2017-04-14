@@ -222,3 +222,4 @@ if __name__ == "__main__":
         SoftmaxLayer(n_in=1000, n_out=10, p_dropout=0.5)],
         mini_batch_size)
     net.SGD(expanded_training_data, 40, mini_batch_size, 0.03, validation_data, test_data)
+    
