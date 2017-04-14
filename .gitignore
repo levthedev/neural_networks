@@ -1,1 +1,4 @@
 *.pyc
+env/
+saved*
+data/mnist_expanded.pkl.gz

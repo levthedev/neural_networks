@@ -4,7 +4,7 @@ from improved_network import *
 import pdb
 
 app = Flask(__name__)
-app.debug = True
+# app.debug = True
 
 @app.route("/")
 def root():
@@ -22,4 +22,4 @@ def process():
     return jsonify({"result": result})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=8080)

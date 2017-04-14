@@ -162,14 +162,14 @@ if __name__ == "__main__":
 
     training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
     net = Network([784, 100, 30, 10])
-    net.SGD(training_data, 25, 100, 0.5,
+    net.SGD(training_data, 60, 100, 0.1,
             evaluation_data=validation_data,
             monitor_evaluation_cost=True,
             monitor_evaluation_accuracy=True,
             monitor_training_cost=True,
             monitor_training_accuracy=True,
             lmbda=5.0)
-    net.save('./saved3')
+    net.save('./saved4')
 
 # implement a learning schedule that: halves the learning rate each time the validation accuracy satisfies the no-improvement-in-10 rule; and terminates when the learning rate has dropped to 1/128th of its original value.
 # Add momentum-based stochastic gradient descent to
