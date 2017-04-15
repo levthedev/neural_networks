@@ -43,13 +43,13 @@ class Network(object):
         n = len(training_data)
         evaluation_cost, evaluation_accuracy = [], []
         training_cost, training_accuracy = [], []
-        minimum_learning_rate = learning_rate / 128
+        minimum_learning_rate = learning_rate / 625
         for j in xrange(epochs):
-            print("has cost improved", improved_cost(training_cost, 10))
+            print("has cost improved? ", improved_cost(training_cost, 10))
             if monitor_training_cost and not improved_cost(training_cost, 5):
                 print('halving learning rate')
-                learning_rate = learning_rate / 2
-            print("learning rate", learning_rate)
+                learning_rate = learning_rate / 5
+            print("learning rate: ", learning_rate)
             if (not monitor_training_cost) or monitor_training_cost and improved_cost(training_cost, 10) and learning_rate > minimum_learning_rate:
                 random.shuffle(training_data)
                 mini_batches = [
@@ -165,7 +165,6 @@ def sigmoid_prime(z):
 
 def improved_cost(training_cost, length):
     if len(training_cost) > length:
-        if len(training_cost) > 45: import pdb; pdb.set_trace()
         return training_cost[-1:][0] < min(training_cost[-length - 1:-1])
     else:
         return True
@@ -174,8 +173,9 @@ if __name__ == "__main__":
     import mnist_loader
 
     training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-    net = Network([784, 30, 10])
-    net.SGD(training_data, 50, 100, 1,
+    expanded_training_data, _, _ = load_data_shared( "./data/mnist_expanded.pkl.gz")
+    net = Network([784, 2500, 2000, 1500, 1000, 500, 10])
+    net.SGD(expanded_training_data, 50, 100, 1,
             evaluation_data=validation_data,
             monitor_evaluation_cost=True,
             monitor_evaluation_accuracy=True,
