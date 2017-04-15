@@ -8,8 +8,8 @@ def load_data(path='./data/mnist.pkl.gz'):
     f.close()
     return (training_data, validation_data, test_data)
 
-def load_data_wrapper():
-    tr_d, va_d, te_d = load_data()
+def load_data_wrapper(path='./data/mnist.pkl.gz'):
+    tr_d, va_d, te_d = load_data(path)
     training_inputs = [np.reshape(x, (784, 1)) for x in tr_d[0]]
     training_results = [vectorized_result(y) for y in tr_d[1]]
     training_data = zip(training_inputs, training_results)
