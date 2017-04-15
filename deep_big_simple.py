@@ -21,42 +21,43 @@ class Network(object):
         self.num_layers = len(sizes)
         self.sizes = sizes
         self.default_weight_initializer()
+        # self.uniform_weight_initializer()
         self.cost=cost
 
     def default_weight_initializer(self):
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
         self.weights = [np.random.randn(y, x) / np.sqrt(x) for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
+    def uniform_weight_initializer(self):
+        self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
+        self.weights = [np.random.uniform(-0.05, 0.05) for x in self.sizes[1:]]
+
     def feedforward(self, a):
         for b, w in zip(self.biases, self.weights):
             a = sigmoid(np.dot(w, a) + b)
         return a
 
-    def SGD(self, training_data, epochs, mini_batch_size, learning_rate,
+    def SGD(self, training_data, epochs, learning_rate,
             lmbda = 0.0,
             evaluation_data=None,
             monitor_evaluation_cost=False,
             monitor_evaluation_accuracy=False,
             monitor_training_cost=False,
             monitor_training_accuracy=False):
+        mini_batch_size = 10
         if evaluation_data: n_data = len(evaluation_data)
         n = len(training_data)
         evaluation_cost, evaluation_accuracy = [], []
         training_cost, training_accuracy = [], []
-        minimum_learning_rate = learning_rate / 128
         for j in xrange(epochs):
-            print("has cost improved", improved_cost(training_cost, 10))
-            if monitor_training_cost and not improved_cost(training_cost, 5):
-                print('halving learning rate')
-                learning_rate = learning_rate / 2
-            print("learning rate", learning_rate)
-            if (not monitor_training_cost) or monitor_training_cost and improved_cost(training_cost, 10) and learning_rate > minimum_learning_rate:
-                random.shuffle(training_data)
-                mini_batches = [
-                    training_data[k:k + mini_batch_size]
-                    for k in xrange(0, n, mini_batch_size)]
-                for mini_batch in mini_batches:
-                    self.update_mini_batch(mini_batch, learning_rate, lmbda, len(training_data))
+            random.shuffle(training_data)
+            mini_batches = [
+                training_data[k:k + mini_batch_size]
+                for k in xrange(0, n, mini_batch_size)]
+            for mini_batch in mini_batches:
+                self.update_mini_batch(mini_batch, learning_rate, lmbda, len(training_data))
+            # for sample in training_data:
+            #     self.update_mini_batch([sample], learning_rate, lmbda, len(training_data))
 
             print "Epoch %s training complete" % j
             if monitor_training_cost:
@@ -76,6 +77,8 @@ class Network(object):
                 evaluation_accuracy.append(accuracy)
                 print "Accuracy on evaluation data: {} / {}".format(self.accuracy(evaluation_data), n_data)
             print
+            learning_rate = learning_rate / 2
+            print("learning rate", learning_rate)
         return evaluation_cost, evaluation_accuracy, training_cost, training_accuracy
 
     def update_mini_batch(self, mini_batch, learning_rate, lmbda, n):
@@ -112,9 +115,6 @@ class Network(object):
         return (nabla_b, nabla_w)
 
     def accuracy(self, data, convert=False):
-        """The flag ``convert`` should be set to False if the data set is
-        validation or test data (the usual case), and to True if the
-        data set is the training data."""
         if convert: # maybe I can convert y to be an array and get rid of the conditional?
             results = [(np.argmax(self.feedforward(x)), np.argmax(y)) for (x, y) in data]
         else:
@@ -122,16 +122,12 @@ class Network(object):
         return sum(int(x == y) for (x, y) in results)
 
     def total_cost(self, data, lmbda, convert=False):
-        """Return the total cost for the data set ``data``.  The flag
-        ``convert`` should be set to False if the data set is the
-        training data (the usual case), and to True if the data set is
-        the validation or test data."""
         cost = 0.0
         for x, y in data:
             a = self.feedforward(x)
             if convert: y = vectorized_result(y)
             cost += self.cost.layer_error(a, y) / len(data)
-        cost += 0.5 * (lmbda/len(data)) * sum(np.linalg.norm(w) ** 2 for w in self.weights)
+        cost += 0.5 * (lmbda / len(data)) * sum(np.linalg.norm(w) ** 2 for w in self.weights)
         return cost
 
     def save(self, filename):
@@ -163,19 +159,23 @@ def sigmoid(z):
 def sigmoid_prime(z):
     return sigmoid(z) * (1 - sigmoid(z))
 
-def improved_cost(training_cost, length):
-    if len(training_cost) > length:
-        if len(training_cost) > 45: import pdb; pdb.set_trace()
-        return training_cost[-1:][0] < min(training_cost[-length - 1:-1])
-    else:
-        return True
+def ReLU(x):
+    return max(0, x)
+
+def tanh(x):
+    return math.tanh(x)
+
+def scaled_tanh(x):
+    a = 1.7159
+    b = 0.6666
+    return a * tanh(x) * b * x
 
 if __name__ == "__main__":
     import mnist_loader
 
     training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-    net = Network([784, 30, 10])
-    net.SGD(training_data, 50, 100, 1,
+    net = Network([784, 1000, 500, 10])
+    net.SGD(training_data, 50, 1,
             evaluation_data=validation_data,
             monitor_evaluation_cost=True,
             monitor_evaluation_accuracy=True,

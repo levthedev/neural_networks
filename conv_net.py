@@ -14,7 +14,7 @@ from theano.tensor.nnet import sigmoid
 from theano.tensor import tanh
 
 
-GPU = False
+GPU = True
 if GPU:
     print "Trying to run under a GPU."
     try: theano.config.device = 'gpu'
@@ -49,6 +49,11 @@ class Network(object):
         self.output = self.layers[-1].output
         self.output_dropout = self.layers[-1].output_dropout
 
+    def save(self):
+        f = open('saved', 'w')
+        params = (self.layers, self.params, self.mini_batch_size)
+        cPickle.dump(params, f, protocol=cPickle.HIGHEST_PROTOCOL)
+
     def SGD(self, training_data, epochs, mini_batch_size, eta, validation_data, test_data, lmbda=0.0):
         training_x, training_y = training_data
         validation_x, validation_y = validation_data
@@ -61,33 +66,34 @@ class Network(object):
         l2_norm_squared = sum([(layer.w ** 2).sum() for layer in self.layers])
         cost = self.layers[-1].cost(self) + 0.5 * lmbda * l2_norm_squared / num_training_batches
         grads = T.grad(cost, self.params)
-        updates = [(param, param - eta * grad)
-                   for param, grad in zip(self.params, grads)]
+        updates = [(param, param - eta * grad) for param, grad in zip(self.params, grads)]
 
         i = T.lscalar() # mini-batch index
         train_mb = theano.function(
             [i], cost, updates=updates,
             givens={
-                self.x: training_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
-                self.y: training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
+                self.x: training_x[i * self.mini_batch_size: (i + 1) * self.mini_batch_size],
+                self.y: training_y[i * self.mini_batch_size: (i + 1) * self.mini_batch_size]
             })
         validate_mb_accuracy = theano.function(
             [i], self.layers[-1].accuracy(self.y),
             givens={
-                self.x: validation_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
-                self.y: validation_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
+                self.x: validation_x[i * self.mini_batch_size: (i + 1) * self.mini_batch_size],
+                self.y: validation_y[i * self.mini_batch_size: (i + 1) * self.mini_batch_size]
             })
         test_mb_accuracy = theano.function(
             [i], self.layers[-1].accuracy(self.y),
             givens={
-                self.x: test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
-                self.y: test_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
+                self.x: test_x[i * self.mini_batch_size: (i + 1) * self.mini_batch_size],
+                self.y: test_y[i * self.mini_batch_size: (i + 1) * self.mini_batch_size]
             })
+
         self.test_mb_predictions = theano.function(
             [i], self.layers[-1].y_out,
             givens={
-                self.x: test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
+                self.x: test_x[i * self.mini_batch_size: (i + 1) * self.mini_batch_size]
             })
+
 
         best_validation_accuracy = 0.0
         for epoch in xrange(epochs):
@@ -209,17 +215,44 @@ def dropout_layer(layer, p_dropout):
     mask = srng.binomial(n=1, p=1 - p_dropout, size=layer.shape)
     return layer * T.cast(mask, theano.config.floatX)
 
+def load(filepath='saved'):
+    f = open(filepath, 'rb')
+    layers, params, mini_batch_size = cPickle.load(f)
+    net = Network(layers, mini_batch_size)
+    net.params = params
+    return net
+
 if __name__ == "__main__":
     training_data, validation_data, test_data = load_data_shared()
     expanded_training_data, _, _ = load_data_shared( "./data/mnist_expanded.pkl.gz")
-    mini_batch_size = 10
+    mini_batch_size = 100
 
+    # regular conv net = Network([
+    #     ConvPoolLayer(image_shape=(mini_batch_size, 1, 28, 28), filter_shape=(20, 1, 5, 5), poolsize=(2, 2), activation_fn=ReLU),
+    #     ConvPoolLayer(image_shape=(mini_batch_size, 20, 12, 12), filter_shape=(40, 20, 5, 5), poolsize=(2, 2), activation_fn=ReLU),
+    #     FullyConnectedLayer(n_in=40*4*4, n_out=1000, activation_fn=ReLU, p_dropout=0.5),
+    #     FullyConnectedLayer(n_in=1000, n_out=1000, activation_fn=ReLU, p_dropout=0.5),
+    #     SoftmaxLayer(n_in=1000, n_out=10, p_dropout=0.5)],
+    #     mini_batch_size)
     net = Network([
-        ConvPoolLayer(image_shape=(mini_batch_size, 1, 28, 28), filter_shape=(20, 1, 5, 5), poolsize=(2, 2), activation_fn=ReLU),
-        ConvPoolLayer(image_shape=(mini_batch_size, 20, 12, 12), filter_shape=(40, 20, 5, 5), poolsize=(2, 2), activation_fn=ReLU),
-        FullyConnectedLayer(n_in=40*4*4, n_out=1000, activation_fn=ReLU, p_dropout=0.5),
-        FullyConnectedLayer(n_in=1000, n_out=1000, activation_fn=ReLU, p_dropout=0.5),
-        SoftmaxLayer(n_in=1000, n_out=10, p_dropout=0.5)],
-        mini_batch_size)
-    net.SGD(expanded_training_data, 40, mini_batch_size, 0.03, validation_data, test_data)
-    
+        FullyConnectedLayer(n_in=784, n_out=2500, activation_fn=ReLU, p_dropout=0.5),
+        FullyConnectedLayer(n_in=2500, n_out=2000, activation_fn=ReLU, p_dropout=0.5),
+        FullyConnectedLayer(n_in=2000, n_out=1500, activation_fn=ReLU, p_dropout=0.5),
+        FullyConnectedLayer(n_in=1500, n_out=1000, activation_fn=ReLU, p_dropout=0.5),
+        FullyConnectedLayer(n_in=1000, n_out=500, activation_fn=ReLU, p_dropout=0.5),
+        FullyConnectedLayer(n_in=500, n_out=100, activation_fn=ReLU, p_dropout=0.5),
+        SoftmaxLayer(n_in=100, n_out=10, p_dropout=0.5)
+    ], mini_batch_size)
+    # net.SGD(training_data, 1, mini_batch_size, 1, validation_data, test_data)
+    # net.save()
+    # net = load()
+
+    # large fc
+    # net = Network([
+    #     FullyConnectedLayer(n_in=784, n_out=2000),
+    #     FullyConnectedLayer(n_in=2000, n_out=1500),
+    #     FullyConnectedLayer(n_in=1500, n_out=1000),
+    #     FullyConnectedLayer(n_in=1000, n_out=500),
+    #     SoftmaxLayer(n_in=500, n_out=10)],
+    #     mini_batch_size)
+    net.SGD(expanded_training_data, 50, mini_batch_size, 0.05, validation_data, test_data)
