@@ -181,7 +181,7 @@ if __name__ == "__main__":
             monitor_evaluation_accuracy=True,
             monitor_training_cost=True,
             monitor_training_accuracy=True)
-    # net.save('./saved2')
+    net.save('./big_model')
 
 # Add momentum-based stochastic gradient descent to
 # randomize activation function between sigmoid, tanh, RELU, linear, etc
