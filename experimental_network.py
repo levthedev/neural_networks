@@ -173,7 +173,7 @@ if __name__ == "__main__":
     import mnist_loader
 
     training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-    expanded_training_data, _, _ = load_data_shared( "./data/mnist_expanded.pkl.gz")
+    expanded_training_data, _, _ = mnist_loader.load_data_wrapper("./data/mnist_expanded.pkl.gz")
     net = Network([784, 2500, 2000, 1500, 1000, 500, 10])
     net.SGD(expanded_training_data, 50, 100, 1,
             evaluation_data=validation_data,

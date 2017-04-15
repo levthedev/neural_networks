@@ -2,7 +2,7 @@ import cPickle
 import gzip
 import numpy as np
 
-def load_data():
+def load_data(path='./data/mnist.pkl.gz'):
     f = gzip.open('./data/mnist.pkl.gz', 'rb')
     training_data, validation_data, test_data = cPickle.load(f)
     f.close()
